@@ -1,5 +1,5 @@
 ---
-title: "Desempleo"
+title: "Mercado Laboral en Colombia"
 subtitle: "Tasa de desempleo"
 author: "Miguel Martinez"
 date: today
@@ -68,7 +68,7 @@ ggplot(unemp) +
   theme_classic() +
   labs(title = "Tasa de desocupación – TD desestacionalizada (preliminar).
        Total nacional y 13 ciudades y áreas metropolitanas",
-       subtitle = "Mensual. Enero 2019 – Diciembre 2024",
+       subtitle = "Mensual. enero 2019 – marzo 2025",
        x = "Mes",
        y = "Tasa de Desocupación (%)",
        caption = "Fuente: Elaboración propia con datos del DANE, GEIH") +
@@ -102,7 +102,7 @@ ggplot(emp) +
   theme_classic() +
   labs(title = "Tasa de ocupación – TO desestacionalizada (preliminar).
        Total nacional y 13 ciudades y áreas metropolitanas",
-       subtitle = "Mensual. Enero 2019 – Diciembre 2024",
+       subtitle = "Mensual. enero 2019 – marzo 2025",
        x = "Mes",
        y = "Tasa de Ocupación (%)",
        caption = "Fuente: Elaboración propia con datos del DANE, GEIH") +
@@ -136,7 +136,7 @@ ggplot(lfp) +
   theme_classic() +
   labs(title = "Tasa global de participación – TGP desestacionalizada (preliminar).
        Total nacional y 13 ciudades y áreas metropolitanas",
-       subtitle = "Mensual. Enero 2019 – Diciembre 2024",
+       subtitle = "Mensual. enero 2019 – marzo 2025",
        x = "Mes",
        y = "Tasa global de participación (%)",
        caption = "Fuente: Elaboración propia con datos del DANE, GEIH") +
