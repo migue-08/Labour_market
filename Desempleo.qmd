@@ -1,6 +1,6 @@
 ---
-title: "Mercado Laboral en Colombia"
-subtitle: "Tasa de desempleo"
+title: "Labour Market in Colombia"
+subtitle: "Indices"
 author: "Miguel Martinez"
 date: today
 format: 
@@ -12,7 +12,7 @@ execute:
   warning: false
 ---
 
-This document presents the process of building a graph of the evolution of the unemployment rate in Colombia. The data is made public by the Departamento Administrativo de Colombia ([DANE](https://www.dane.gov.co/)), and you can reproduce this downloading the data set [here](https://www.dane.gov.co/index.php/estadisticas-por-tema/mercado-laboral/empleo-y-desempleo).
+This document presents the process of building some graphs of the evolution of the unemployment, employment and labor force participation rate in Colombia for the last years. The data is made public by the Departamento Administrativo de Colombia ([DANE](https://www.dane.gov.co/)), and you can reproduce this downloading the data set [here](https://www.dane.gov.co/index.php/estadisticas-por-tema/mercado-laboral/empleo-y-desempleo).
 
 The first step is to load the following libraries:
 
@@ -22,25 +22,133 @@ library(readxl)
 library(tidyverse)
 ```
 
-Now we can load the data set:
+Now we can load the datasets:
 
 ## Load data
 
 ```{r}
 
-data = read_excel("data.xlsx")
+# Here we load the labour market indices for Total country
+
+df1 = readxl::read_excel("anex-GEIH-Desestacionalizado-abr2025.xlsx",
+                         sheet = "Total nacional",
+                         range = "A12:KG16",
+                         col_names = FALSE)
+
+# Now we load the labour market indices for Total 13 cities and metropolitan areas
+
+df2 = readxl::read_excel("anex-GEIH-Desestacionalizado-abr2025.xlsx",
+                         sheet = "Total 13 ciudades A.M.",
+                         range = "A12:KG16",
+                         col_names = FALSE)
+```
+
+## Indexing
+
+```{r}
+
+# Indexing the year and month variables to the dataframes
+
+df1[1, 1] = "Año"
+df1[2, 1] = "Mes"
+
+df2[1, 1] = "Año"
+df2[2, 1] = "Mes"
+```
+
+## Lengthening Data
+
+```{r}
+
+# Total country
+
+df1 = df1 |>
+  tidyr::pivot_longer(cols = 2:293) |> 
+  tidyr::fill(value) |> 
+  tidyr::pivot_wider(names_from = 1,
+                     values_from = value) |> 
+  dplyr::select(Año:`Tasa de Desocupación (TD)`)
+
+df1
+```
+
+```{r}
+
+# Total 13 cities and metropolitan areas
+
+df2 = df2 |>
+  tidyr::pivot_longer(cols = 2:293) |> 
+  tidyr::fill(value) |> 
+  tidyr::pivot_wider(names_from = 1,
+                     values_from = value) |> 
+  dplyr::select(Año:`Tasa de Desocupación (TD)`)
+
+df2
+```
+
+## Merging Dataframes
+
+```{r}
+
+# Now we merge both dataframes: total country and 13 cities and metropolitan areas labour market indices by (año and mes)
+
+data = df1 |> 
+  dplyr::inner_join(df2,
+                    by = c("Año", "Mes"),
+                    suffix = c(".TN", ".13 A.M"))
 
 data
 ```
 
-Then, we filter the data set from 2019:
+## D type transformation
 
 ```{r}
 
+# Now we transform some variables to numeric
+
 data = data |> 
-  filter(Año>=2019)
+  dplyr::mutate_at(vars(1, 3:8), as.numeric)
 
 data
+```
+
+```{r}
+
+# Please first notice that some months have asterisks, so we  need to replace them too
+
+data |> 
+  dplyr::distinct(Mes)
+
+```
+
+```{r}
+
+# Now we transform the "string" format of months to "numeric"
+
+data = data |>
+  dplyr::mutate(
+    Mes = recode(Mes,
+                 "Ene" = 01, "Feb" = 02,
+                 "Mar" = 03, "Abr" = 04,
+                 "May" = 05, "Jun" = 06,
+                 "Jul" = 07, "Ago" = 08,
+                 "Sep" = 09, "Oct" = 10,
+                 "Nov" = 11, "Dic" = 12,
+                 "Jul*" = 07, "Ago*" = 08))
+
+glimpse(data)
+```
+
+## Filtering
+
+```{r}
+
+# Then, we filter the data set from 2019:
+
+data = data |>
+  filter(Año>=2019)
+
+glimpse(data)
 ```
 
 ## Unemployment
@@ -49,10 +157,13 @@ Now we filter the data for unemployment and then present the data in the *long* 
 
 ```{r}
 
-unemp = data |> 
-  select(Año, Mes, `Tasa de Desocupación (TD) TN`, `Tasa de Desocupación (TD) Total 13 ciudades A.M.`) |> 
-  pivot_longer(cols = 3:4, names_to = "TD",
-               values_to = "value")
+unemp = data |>
+  select(Año, Mes,
+         `Tasa de Desocupación (TD).TN`,
+         `Tasa de Desocupación (TD).13 A.M`) |>
+  pivot_longer(cols = 3:4,
+               names_to = "TD",
+               values_to = "value")  
 
 unemp
 ```
@@ -68,7 +179,7 @@ ggplot(unemp) +
   theme_classic() +
   labs(title = "Tasa de desocupación – TD desestacionalizada (preliminar).
        Total nacional y 13 ciudades y áreas metropolitanas",
-       subtitle = "Mensual. enero 2019 – marzo 2025",
+       subtitle = "Mensual. enero 2019 – abril 2025",
        x = "Mes",
        y = "Tasa de Desocupación (%)",
        caption = "Fuente: Elaboración propia con datos del DANE, GEIH") +
@@ -84,10 +195,13 @@ Now we filter the data for employment and then present the data in the *long* or
 
 ```{r}
 
-emp = data |> 
-  select(Año, Mes, `Tasa de Ocupación (TO) TN`, `Tasa de Ocupación (TO) Total 13 ciudades A.M.`) |> 
-  pivot_longer(cols = 3:4, names_to = "TO",
-               values_to = "value")
+emp = data |>
+  select(Año, Mes,
+         `Tasa de Ocupación (TO).TN`,
+         `Tasa de Ocupación (TO).13 A.M`) |>
+  pivot_longer(cols = 3:4,
+               names_to = "TO",
+               values_to = "value")  
 
 emp
 ```
@@ -102,13 +216,13 @@ ggplot(emp) +
   theme_classic() +
   labs(title = "Tasa de ocupación – TO desestacionalizada (preliminar).
        Total nacional y 13 ciudades y áreas metropolitanas",
-       subtitle = "Mensual. enero 2019 – marzo 2025",
+       subtitle = "Mensual. enero 2019 – abril 2025",
        x = "Mes",
        y = "Tasa de Ocupación (%)",
        caption = "Fuente: Elaboración propia con datos del DANE, GEIH") +
   theme(plot.caption.position = "panel",
         plot.caption = element_text(hjust = 0),
-        legend.position = "bottom")
+        legend.position = "bottom") 
 
 ```
 
@@ -118,9 +232,12 @@ Now we filter the data for labor force participation rate and then present the d
 
 ```{r}
 
-lfp = data |> 
-  select(Año, Mes, `Tasa Global de Participación (TGP) TN`, `Tasa Global de Participación (TGP) Total 13 ciudades A.M.`) |> 
-  pivot_longer(cols = 3:4, names_to = "TGP",
+lfp = data |>
+  select(Año, Mes,
+         `Tasa Global de Participación (TGP).TN`,
+         `Tasa Global de Participación (TGP).13 A.M` ) |>
+  pivot_longer(cols = 3:4,
+               names_to = "TGP",
                values_to = "value")
 
 lfp
@@ -136,13 +253,13 @@ ggplot(lfp) +
   theme_classic() +
   labs(title = "Tasa global de participación – TGP desestacionalizada (preliminar).
        Total nacional y 13 ciudades y áreas metropolitanas",
-       subtitle = "Mensual. enero 2019 – marzo 2025",
+       subtitle = "Mensual. enero 2019 – abril 2025",
        x = "Mes",
        y = "Tasa global de participación (%)",
        caption = "Fuente: Elaboración propia con datos del DANE, GEIH") +
   theme(plot.caption.position = "panel",
         plot.caption = element_text(hjust = 0),
-        legend.position = "bottom")
+        legend.position = "bottom") 
 
 ```
 
